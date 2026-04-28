@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { StaffNav } from "@/components/layout/staff-nav";
+import { AdminNav } from "@/components/layout/admin-nav";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function StaffLayout({
@@ -35,7 +36,7 @@ export default function StaffLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <StaffNav />
+      {role === "ADMIN" ? <AdminNav /> : <StaffNav />}
       <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
     </div>
   );

@@ -1,6 +1,14 @@
 import { apiFetch } from "./client";
 import type { DeliveryZone, WeeklyConfig } from "./types";
 
+export function getWeeklyConfig(
+  weekIdentifier: string
+): Promise<WeeklyConfig> {
+  return apiFetch<WeeklyConfig>(
+    `/admin/weekly-configs/${encodeURIComponent(weekIdentifier)}`
+  );
+}
+
 export function upsertWeeklyConfig(
   data: Omit<WeeklyConfig, "id">
 ): Promise<WeeklyConfig> {
