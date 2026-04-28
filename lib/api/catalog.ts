@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import type { CatalogDish, CatalogResponse, WeeklyPackage } from "./types";
+import type { CatalogDish, CatalogResponse, MealType, WeeklyPackage } from "./types";
 
 export function getCatalog(weekIdentifier: string): Promise<CatalogResponse> {
   return apiFetch<CatalogResponse>(`/catalog/${weekIdentifier}`);
@@ -14,9 +14,21 @@ export function createDish(
   });
 }
 
-export function upsertPackage(
-  data: Omit<WeeklyPackage, "id">
-): Promise<WeeklyPackage> {
+export interface UpsertPackageRequest {
+  id?: string;
+  weekIdentifier: string;
+  name: string;
+  description?: string;
+  discountPercentage: number;
+  items: Array<{
+    dayOfWeek: number;
+    mealType: MealType;
+    dishId: string;
+    sideId?: string;
+  }>;
+}
+
+export function upsertPackage(data: UpsertPackageRequest): Promise<WeeklyPackage> {
   return apiFetch<WeeklyPackage>("/catalog/packages", {
     method: "PUT",
     body: JSON.stringify(data),

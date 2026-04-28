@@ -13,6 +13,7 @@ import { WeekSelector } from "@/components/week-selector";
 import { dishTypeLabel, formatPrice } from "@/lib/utils";
 import type { CatalogDish, DishType } from "@/lib/api/types";
 import { ApiClientError } from "@/lib/api/client";
+import { PackagesSection } from "./packages-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -245,6 +246,15 @@ export function CatalogPageClient() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Packages section */}
+      {catalog && (
+        <PackagesSection
+          weekIdentifier={weekIdentifier}
+          packages={catalog.packages}
+          dishes={catalog.dishes}
+        />
+      )}
 
       {/* Edit dialog */}
       <Dialog open={!!editingDish} onOpenChange={(open) => !open && setEditingDish(null)}>
