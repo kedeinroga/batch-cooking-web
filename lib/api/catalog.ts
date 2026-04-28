@@ -23,6 +23,16 @@ export function upsertPackage(
   });
 }
 
+export function updateDish(
+  dishId: string,
+  data: Pick<CatalogDish, "name" | "type" | "price">
+): Promise<CatalogDish> {
+  return apiFetch<CatalogDish>(`/catalog/dishes/${dishId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
 export function deleteDish(dishId: string): Promise<void> {
   return apiFetch<void>(`/catalog/dishes/${dishId}`, { method: "DELETE" });
 }

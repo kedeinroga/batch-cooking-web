@@ -1,16 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Trash2, Plus } from "lucide-react";
-import { getCatalog, createDish, deleteDish } from "@/lib/api/catalog";
+import { Trash2, Plus, Pencil } from "lucide-react";
+import { getCatalog, createDish, deleteDish, updateDish } from "@/lib/api/catalog";
 import { useCurrentWeek } from "@/hooks/use-current-week";
 import { WeekSelector } from "@/components/week-selector";
 import { dishTypeLabel, formatPrice } from "@/lib/utils";
-import type { DishType } from "@/lib/api/types";
+import type { CatalogDish, DishType } from "@/lib/api/types";
 import { ApiClientError } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
@@ -44,6 +52,7 @@ type DishForm = z.infer<typeof dishSchema>;
 export function CatalogPageClient() {
   const queryClient = useQueryClient();
   const { weekIdentifier } = useCurrentWeek();
+  const [editingDish, setEditingDish] = useState<CatalogDish | null>(null);
 
   const { data: catalog, isLoading } = useQuery({
     queryKey: ["catalog", weekIdentifier],
@@ -61,6 +70,16 @@ export function CatalogPageClient() {
     defaultValues: { type: "MAIN" },
   });
 
+  const {
+    register: registerEdit,
+    handleSubmit: handleSubmitEdit,
+    reset: resetEdit,
+    setValue: setValueEdit,
+    formState: { errors: errorsEdit },
+  } = useForm<DishForm>({
+    resolver: zodResolver(dishSchema),
+  });
+
   const createMutation = useMutation({
     mutationFn: (data: DishForm) =>
       createDish({ ...data, weekIdentifier }),
@@ -76,6 +95,21 @@ export function CatalogPageClient() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (data: DishForm) =>
+      updateDish(editingDish!.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["catalog", weekIdentifier] });
+      toast.success("Plato actualizado");
+      setEditingDish(null);
+    },
+    onError: (err) => {
+      const msg =
+        err instanceof ApiClientError ? err.errorMessage : "Error al actualizar";
+      toast.error(msg);
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: deleteDish,
     onSuccess: () => {
@@ -84,6 +118,11 @@ export function CatalogPageClient() {
     },
     onError: () => toast.error("Error al eliminar"),
   });
+
+  function openEdit(dish: CatalogDish) {
+    setEditingDish(dish);
+    resetEdit({ name: dish.name, type: dish.type, price: dish.price });
+  }
 
   return (
     <div className="space-y-6">
@@ -186,6 +225,13 @@ export function CatalogPageClient() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => openEdit(dish)}
+                      >
+                        <Pencil className="h-4 w-4 text-gray-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         disabled={deleteMutation.isPending}
                         onClick={() => deleteMutation.mutate(dish.id)}
                       >
@@ -199,6 +245,68 @@ export function CatalogPageClient() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editingDish} onOpenChange={(open) => !open && setEditingDish(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar plato</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={handleSubmitEdit((data: DishForm) => updateMutation.mutate(data))}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label>Nombre</Label>
+              <Input {...registerEdit("name")} />
+              {errorsEdit.name && (
+                <p className="text-sm text-red-500">{errorsEdit.name.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select
+                value={editingDish?.type}
+                onValueChange={(v) => setValueEdit("type", v as DishType)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DISH_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {dishTypeLabel(t)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Precio (S/)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                {...registerEdit("price", { valueAsNumber: true })}
+              />
+              {errorsEdit.price && (
+                <p className="text-sm text-red-500">{errorsEdit.price.message}</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditingDish(null)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? "Guardando..." : "Guardar cambios"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
