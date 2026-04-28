@@ -4,7 +4,7 @@ import { use } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getOrder, upsertOrderItem, applyPackage, checkoutOrder, cancelOrder, deleteOrder } from "@/lib/api/orders";
+import { getOrder, upsertOrderItem, removeOrderItem, applyPackage, checkoutOrder, cancelOrder, deleteOrder } from "@/lib/api/orders";
 import { getCatalog } from "@/lib/api/catalog";
 import { ApiClientError } from "@/lib/api/client";
 import { getErrorMessage, dayLabel, mealLabel, formatPrice, statusLabel } from "@/lib/utils";
@@ -30,6 +30,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useState } from "react";
+import { ArrowRight } from "lucide-react";
 import { statusColor } from "@/lib/utils";
 
 const DAYS = [1, 2, 3, 4, 5];
@@ -98,6 +99,16 @@ export function OrderEditorClient({
       (i) => i.dayOfWeek === day && i.mealType === meal
     );
   }
+
+  const removeMutation = useMutation({
+    mutationFn: ({ dayOfWeek, mealType }: { dayOfWeek: number; mealType: MealType }) =>
+      removeOrderItem(orderId, dayOfWeek, mealType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: () => toast.error("Error al quitar el plato"),
+  });
 
   const upsertMutation = useMutation({
     mutationFn: (data: {
@@ -170,7 +181,12 @@ export function OrderEditorClient({
   });
 
   function handleMainChange(day: number, meal: MealType, dishId: string) {
-    if (dishId === "none") return;
+    if (dishId === "none") {
+      if (getItem(day, meal)) {
+        removeMutation.mutate({ dayOfWeek: day, mealType: meal });
+      }
+      return;
+    }
     const item = getItem(day, meal);
     upsertMutation.mutate({
       dayOfWeek: day,
@@ -365,30 +381,50 @@ export function OrderEditorClient({
           {isEditable && (
             <div className="space-y-2">
               <Button
-                className="w-full"
+                className="w-full h-auto flex-col gap-0.5 py-3"
                 onClick={() => checkoutMutation.mutate()}
                 disabled={
                   checkoutMutation.isPending || (order.items?.length ?? 0) === 0
                 }
               >
-                {checkoutMutation.isPending
-                  ? "Confirmando..."
-                  : "Confirmar pedido"}
+                <span className="flex items-center gap-1.5 font-semibold">
+                  {checkoutMutation.isPending ? "Procesando..." : "Proceder al pago"}
+                  {!checkoutMutation.isPending && <ArrowRight className="h-4 w-4" />}
+                </span>
+                <span className="text-xs font-normal opacity-75">
+                  Finaliza tu selección y pasa al pago
+                </span>
               </Button>
-              <Button
-                variant="outline"
-                className="w-full"
+
+              <div className="flex items-center gap-2 py-1">
+                <Separator className="flex-1" />
+                <span className="text-xs text-gray-400 whitespace-nowrap">otras acciones</span>
+                <Separator className="flex-1" />
+              </div>
+
+              <button
+                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-left transition-colors hover:bg-gray-50"
                 onClick={() => setConfirmCancel(true)}
               >
-                Cancelar pedido
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full text-red-600 hover:text-red-700"
+                <span className="block text-sm font-medium text-gray-700">
+                  Cancelar pedido
+                </span>
+                <span className="mt-0.5 block text-xs text-gray-400">
+                  Queda registrado en tu historial
+                </span>
+              </button>
+
+              <button
+                className="w-full rounded-md px-3 py-2.5 text-left transition-colors hover:bg-red-50"
                 onClick={() => setConfirmDelete(true)}
               >
-                Eliminar borrador
-              </Button>
+                <span className="block text-sm font-medium text-red-600">
+                  Eliminar borrador
+                </span>
+                <span className="mt-0.5 block text-xs text-red-400">
+                  Se borra por completo, sin historial
+                </span>
+              </button>
             </div>
           )}
 
@@ -408,21 +444,22 @@ export function OrderEditorClient({
       <Dialog open={confirmCancel} onOpenChange={setConfirmCancel}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cancelar pedido</DialogTitle>
+            <DialogTitle>¿Cancelar este pedido?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-600">
-            ¿Seguro que deseas cancelar este pedido?
+            El pedido quedará marcado como cancelado. Podrás verlo en tu
+            historial pero no podrás editarlo ni retomarlo.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmCancel(false)}>
-              No, mantener
+              Mantener pedido
             </Button>
             <Button
               variant="destructive"
               disabled={cancelMutation.isPending}
               onClick={() => cancelMutation.mutate()}
             >
-              {cancelMutation.isPending ? "Cancelando..." : "Sí, cancelar"}
+              {cancelMutation.isPending ? "Cancelando..." : "Sí, cancelar pedido"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -432,21 +469,22 @@ export function OrderEditorClient({
       <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Eliminar borrador</DialogTitle>
+            <DialogTitle>¿Eliminar este borrador?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-600">
-            ¿Eliminar este borrador? Se perderán todos los datos.
+            El borrador se eliminará por completo y no aparecerá en tu
+            historial. Esta acción no se puede deshacer.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-              Cancelar
+              Mantener borrador
             </Button>
             <Button
               variant="destructive"
               disabled={deleteMutation.isPending}
               onClick={() => deleteMutation.mutate()}
             >
-              {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}
+              {deleteMutation.isPending ? "Eliminando..." : "Sí, eliminar"}
             </Button>
           </DialogFooter>
         </DialogContent>

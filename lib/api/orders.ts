@@ -55,3 +55,14 @@ export function cancelOrder(orderId: string): Promise<Order> {
 export function deleteOrder(orderId: string): Promise<void> {
   return apiFetch<void>(`/orders/${orderId}`, { method: "DELETE" });
 }
+
+export function removeOrderItem(
+  orderId: string,
+  dayOfWeek: number,
+  mealType: MealType,
+): Promise<Order> {
+  return apiFetch<Order>(
+    `/orders/${orderId}/items/${dayOfWeek}/${mealType}`,
+    { method: "DELETE" },
+  );
+}
