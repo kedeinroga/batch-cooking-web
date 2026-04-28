@@ -10,7 +10,7 @@ export function getOrder(orderId: string): Promise<Order> {
 }
 
 export function createOrder(data: {
-  addressId: string;
+  deliveryAddressId: string;
   weekIdentifier: string;
 }): Promise<Order> {
   return apiFetch<Order>("/orders", {
@@ -24,8 +24,8 @@ export function upsertOrderItem(
   data: {
     dayOfWeek: number;
     mealType: MealType;
-    mainDishId: string;
-    sideDishId?: string;
+    dishId: string;
+    sideId?: string;
   }
 ): Promise<OrderItem> {
   return apiFetch<OrderItem>(`/orders/${orderId}/items`, {

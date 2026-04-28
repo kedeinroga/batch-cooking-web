@@ -6,22 +6,47 @@ import { useState, useEffect } from "react";
 import { Toaster, toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/store/auth.store";
-import { getProfile } from "@/lib/api/profile";
-import { ApiClientError } from "@/lib/api/client";
+import { apiFetch, ApiClientError } from "@/lib/api/client";
 import type { UserRole } from "@/lib/api/types";
+import type { UserProfile } from "@/lib/api/types";
 
-async function fetchAndSetRole(
+// Fetches the profile using a pre-obtained access token (no getSession() call).
+// Used inside onAuthStateChange to avoid acquiring the navigator lock while
+// signInWithPassword still holds it, which would cause a deadlock.
+async function fetchRoleWithToken(
+  accessToken: string,
   supabase: ReturnType<typeof createClient>,
   setRole: (role: UserRole | null) => void,
   clearAuth: () => void
 ): Promise<void> {
   try {
-    const profile = await getProfile();
+    const profile = await apiFetch<UserProfile>("/profile/me", {
+      token: accessToken,
+    });
     setRole(profile.role);
   } catch (err) {
     if (err instanceof ApiClientError && err.statusCode === 404) {
-      // Usuario autenticado pero sin perfil en user_profiles.
-      // Ocurre cuando no existe el trigger en la BD. Hace signout para evitar loop.
+      toast.error("Perfil no encontrado. Contacta al administrador.");
+      await supabase.auth.signOut();
+      clearAuth();
+    } else {
+      setRole(null);
+    }
+  }
+}
+
+// Fetches the profile via getSession() — safe to call outside of any auth lock.
+// Used by initialize() on page load.
+async function fetchRoleFromSession(
+  supabase: ReturnType<typeof createClient>,
+  setRole: (role: UserRole | null) => void,
+  clearAuth: () => void
+): Promise<void> {
+  try {
+    const profile = await apiFetch<UserProfile>("/profile/me");
+    setRole(profile.role);
+  } catch (err) {
+    if (err instanceof ApiClientError && err.statusCode === 404) {
       toast.error("Perfil no encontrado. Contacta al administrador.");
       await supabase.auth.signOut();
       clearAuth();
@@ -44,7 +69,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 
       if (session?.user) {
         setUser(session.user);
-        await fetchAndSetRole(supabase, setRole, clearAuth);
+        await fetchRoleFromSession(supabase, setRole, clearAuth);
       } else {
         clearAuth();
       }
@@ -55,13 +80,13 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         if (event === "SIGNED_IN") {
-          setLoading(true);
+          // Use access_token directly — calling getSession() here would try to
+          // acquire the navigator lock while signInWithPassword still holds it.
           setUser(session.user);
-          await fetchAndSetRole(supabase, setRole, clearAuth);
-          setLoading(false);
+          fetchRoleWithToken(session.access_token, supabase, setRole, clearAuth);
         } else {
           setUser(session.user);
         }

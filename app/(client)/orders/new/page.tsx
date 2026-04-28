@@ -62,7 +62,7 @@ export default function NewOrderPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: NewOrderForm) =>
-      createOrder({ ...data, weekIdentifier }),
+      createOrder({ deliveryAddressId: data.addressId, weekIdentifier }),
     onSuccess: (order) => {
       toast.success("Pedido creado");
       router.push(`/orders/${order.id}`);

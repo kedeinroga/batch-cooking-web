@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BackButton } from "@/components/ui/back-button";
 import { CheckCircle2, Upload } from "lucide-react";
 
 type UploadState = "idle" | "getting-url" | "uploading" | "confirming" | "done";
@@ -106,6 +107,7 @@ export function PaymentPageClient({
 
   return (
     <div className="max-w-md space-y-6">
+      <BackButton href={`/orders/${orderId}`} label="Volver al pedido" />
       <div>
         <h1 className="text-2xl font-bold">Pago del Pedido</h1>
         {order?.ticketNumber && (

@@ -12,6 +12,7 @@ import type { MealType, OrderItem, CatalogDish } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BackButton } from "@/components/ui/back-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -87,8 +88,13 @@ export function OrderEditorClient({
   const mainDishes = (catalog?.dishes ?? []).filter((d) => d.type === "MAIN");
   const sideDishes = (catalog?.dishes ?? []).filter((d) => d.type === "SIDE");
 
+  function getDishName(dishId: string | undefined): string {
+    if (!dishId) return "—";
+    return catalog?.dishes.find((d) => d.id === dishId)?.name ?? "—";
+  }
+
   function getItem(day: number, meal: MealType): OrderItem | undefined {
-    return order?.items.find(
+    return order?.items?.find(
       (i) => i.dayOfWeek === day && i.mealType === meal
     );
   }
@@ -97,8 +103,8 @@ export function OrderEditorClient({
     mutationFn: (data: {
       dayOfWeek: number;
       mealType: MealType;
-      mainDishId: string;
-      sideDishId?: string;
+      dishId: string;
+      sideId?: string;
     }) => upsertOrderItem(orderId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order", orderId] });
@@ -167,22 +173,22 @@ export function OrderEditorClient({
     upsertMutation.mutate({
       dayOfWeek: day,
       mealType: meal,
-      mainDishId: dishId,
-      sideDishId: item?.sideDishId,
+      dishId,
+      sideId: item?.sideId,
     });
   }
 
-  function handleSideChange(day: number, meal: MealType, dishId: string) {
+  function handleSideChange(day: number, meal: MealType, sideId: string) {
     const item = getItem(day, meal);
-    if (!item?.mainDishId) {
+    if (!item?.dishId) {
       toast.error("Primero selecciona un plato principal");
       return;
     }
     upsertMutation.mutate({
       dayOfWeek: day,
       mealType: meal,
-      mainDishId: item.mainDishId,
-      sideDishId: dishId === "none" ? undefined : dishId,
+      dishId: item.dishId,
+      sideId: sideId === "none" ? undefined : sideId,
     });
   }
 
@@ -201,6 +207,7 @@ export function OrderEditorClient({
 
   return (
     <div className="space-y-6">
+      <BackButton href="/orders" label="Mis Pedidos" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">
@@ -241,7 +248,7 @@ export function OrderEditorClient({
               </CardHeader>
               <CardContent>
                 <Select
-                  value={order.packageId ?? ""}
+                  value={order.sourcePackageId ?? ""}
                   onValueChange={(v) => packageMutation.mutate(v)}
                   disabled={packageMutation.isPending}
                 >
@@ -287,7 +294,7 @@ export function OrderEditorClient({
                               <>
                                 <DishSelect
                                   dishes={mainDishes}
-                                  value={item?.mainDishId}
+                                  value={item?.dishId}
                                   onChange={(v) =>
                                     handleMainChange(day, meal, v)
                                   }
@@ -295,7 +302,7 @@ export function OrderEditorClient({
                                 />
                                 <DishSelect
                                   dishes={sideDishes}
-                                  value={item?.sideDishId}
+                                  value={item?.sideId}
                                   onChange={(v) =>
                                     handleSideChange(day, meal, v)
                                   }
@@ -305,11 +312,11 @@ export function OrderEditorClient({
                             ) : (
                               <div className="space-y-1">
                                 <p className="text-sm">
-                                  {item?.mainDish?.name ?? "—"}
+                                  {getDishName(item?.dishId)}
                                 </p>
-                                {item?.sideDish && (
+                                {item?.sideId && (
                                   <p className="text-xs text-gray-500">
-                                    + {item.sideDish.name}
+                                    + {getDishName(item.sideId)}
                                   </p>
                                 )}
                               </div>
@@ -339,12 +346,10 @@ export function OrderEditorClient({
                 <span className="text-gray-600">Subtotal</span>
                 <span>{formatPrice(order.subtotal)}</span>
               </div>
-              {order.discountPercentage > 0 && (
+              {(order.discountApplied ?? 0) > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
-                  <span>Descuento ({order.discountPercentage}%)</span>
-                  <span>
-                    −{formatPrice(order.subtotal * order.discountPercentage / 100)}
-                  </span>
+                  <span>Descuento</span>
+                  <span>−{formatPrice(order.discountApplied)}</span>
                 </div>
               )}
               <Separator />
@@ -361,7 +366,7 @@ export function OrderEditorClient({
                 className="w-full"
                 onClick={() => checkoutMutation.mutate()}
                 disabled={
-                  checkoutMutation.isPending || order.items.length === 0
+                  checkoutMutation.isPending || (order.items?.length ?? 0) === 0
                 }
               >
                 {checkoutMutation.isPending

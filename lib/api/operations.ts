@@ -1,10 +1,16 @@
 import { apiFetch } from "./client";
 import type { DeliveryReport, Order, ProductionReport } from "./types";
 
+interface PendingPaymentOrdersResponse {
+  weekIdentifier: string;
+  totalOrders: number;
+  orders: Order[];
+}
+
 export function getPendingPaymentOrders(week: string): Promise<Order[]> {
-  return apiFetch<Order[]>(
+  return apiFetch<PendingPaymentOrdersResponse>(
     `/operations/orders/pending-payment?week=${week}`
-  );
+  ).then((res) => res.orders);
 }
 
 export function getVoucherSignedUrl(

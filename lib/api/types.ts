@@ -18,7 +18,7 @@ export interface UserProfile {
 
 export interface DeliveryZone {
   id: string;
-  name: string;
+  districtName: string;
   isActive: boolean;
 }
 
@@ -79,11 +79,8 @@ export interface OrderItem {
   orderId: string;
   dayOfWeek: number;
   mealType: MealType;
-  mainDishId: string;
-  sideDishId?: string;
-  mainDish?: CatalogDish;
-  sideDish?: CatalogDish;
-  unitPrice: number;
+  dishId: string;
+  sideId?: string;
 }
 
 export interface Order {
@@ -92,16 +89,13 @@ export interface Order {
   weekIdentifier: string;
   status: OrderStatus;
   ticketNumber?: string;
-  addressId: string;
-  address?: DeliveryAddress;
-  items: OrderItem[];
+  deliveryAddressId: string;
+  items?: OrderItem[];
   subtotal: number;
-  discountPercentage: number;
+  discountApplied: number;
   total: number;
-  packageId?: string;
-  voucherObjectName?: string;
-  createdAt: string;
-  updatedAt: string;
+  sourcePackageId?: string;
+  voucherPath?: string;
   user?: {
     id: string;
     email: string;

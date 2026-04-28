@@ -58,7 +58,7 @@ export function MenuPageClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Menú de la Semana</h1>
         <WeekSelector />
       </div>
@@ -126,7 +126,7 @@ export function MenuPageClient() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-gray-500">
-                        {pkg.items.length} comidas incluidas
+                        {pkg.items?.length ?? 0} comidas incluidas
                       </p>
                     </CardContent>
                   </Card>

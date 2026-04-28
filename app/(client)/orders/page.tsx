@@ -27,9 +27,9 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Mis Pedidos</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <WeekSelector />
           <Button asChild>
             <Link href="/orders/new">
@@ -74,7 +74,7 @@ export default function OrdersPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex justify-between text-sm text-gray-600">
-                    <span>{order.items.length} platos</span>
+                    <span>{order.weekIdentifier}</span>
                     <span className="font-semibold text-gray-900">
                       {formatPrice(order.total)}
                     </span>

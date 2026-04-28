@@ -16,27 +16,33 @@ export class ApiClientError extends Error {
 
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit & { token?: string } = {}
 ): Promise<T> {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const { token: explicitToken, ...fetchOptions } = options;
+
+  let accessToken = explicitToken;
+  if (!accessToken) {
+    const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    accessToken = session?.access_token;
+  }
 
   const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/v1";
   const url = `${baseUrl}${path}`;
 
   const headers: HeadersInit = {
     "Content-Type": "application/json",
-    ...(options.headers ?? {}),
+    ...(fetchOptions.headers ?? {}),
   };
 
-  if (session?.access_token) {
+  if (accessToken) {
     (headers as Record<string, string>)["Authorization"] =
-      `Bearer ${session.access_token}`;
+      `Bearer ${accessToken}`;
   }
 
-  const response = await fetch(url, { ...options, headers });
+  const response = await fetch(url, { ...fetchOptions, headers });
 
   if (!response.ok) {
     let errorBody: ApiError;

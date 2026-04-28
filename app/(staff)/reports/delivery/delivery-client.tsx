@@ -59,9 +59,9 @@ export function DeliveryPageClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Lista de Despacho</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <WeekSelector />
           <Select
             value={filterStatus}
@@ -92,14 +92,14 @@ export function DeliveryPageClient() {
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-md border bg-white">
+        <div className="rounded-md border bg-white overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Ticket</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Dirección</TableHead>
-                <TableHead>Distrito</TableHead>
+                <TableHead className="hidden lg:table-cell">Distrito</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead></TableHead>
@@ -108,7 +108,7 @@ export function DeliveryPageClient() {
             <TableBody>
               {filtered.map((item) => (
                 <TableRow key={item.orderId}>
-                  <TableCell className="font-mono text-sm">
+                  <TableCell className="font-mono text-sm whitespace-nowrap">
                     {item.ticketNumber}
                   </TableCell>
                   <TableCell>
@@ -131,8 +131,8 @@ export function DeliveryPageClient() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">{item.district}</TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell className="hidden lg:table-cell text-sm">{item.district}</TableCell>
+                  <TableCell className="font-medium whitespace-nowrap">
                     {formatPrice(item.total)}
                   </TableCell>
                   <TableCell>

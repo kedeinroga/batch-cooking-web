@@ -62,7 +62,7 @@ export function ZonesPageClient() {
                     <Badge variant={zone.isActive ? "default" : "secondary"}>
                       {zone.isActive ? "Activo" : "Inactivo"}
                     </Badge>
-                    <span className="text-sm font-medium">{zone.name}</span>
+                    <span className="text-sm font-medium">{zone.districtName}</span>
                   </div>
                   <Button
                     size="sm"

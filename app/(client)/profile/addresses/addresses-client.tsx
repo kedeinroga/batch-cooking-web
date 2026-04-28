@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BackButton } from "@/components/ui/back-button";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +63,7 @@ function AddressCard({
           <p className="font-medium">{address.label}</p>
           <p className="text-sm text-gray-600">{address.addressLine}</p>
           {address.district && (
-            <p className="text-sm text-gray-500">{address.district.name}</p>
+            <p className="text-sm text-gray-500">{address.district.districtName}</p>
           )}
           {address.reference && (
             <p className="text-sm text-gray-400 italic">{address.reference}</p>
@@ -186,6 +187,7 @@ export function AddressesPageClient() {
 
   return (
     <div className="space-y-6">
+      <BackButton href="/profile" label="Perfil" />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Mis Direcciones</h1>
         <Button onClick={openCreate}>
@@ -261,7 +263,7 @@ export function AddressesPageClient() {
                     .filter((z) => z.isActive)
                     .map((zone) => (
                       <SelectItem key={zone.id} value={zone.id}>
-                        {zone.name}
+                        {zone.districtName}
                       </SelectItem>
                     ))}
                 </SelectContent>
