@@ -108,6 +108,7 @@ export function OrderEditorClient({
     }) => upsertOrderItem(orderId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
     },
     onError: (err) => {
       const msg =
@@ -122,6 +123,7 @@ export function OrderEditorClient({
     mutationFn: (packageId: string) => applyPackage(orderId, packageId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Paquete aplicado");
     },
     onError: (err) => {
